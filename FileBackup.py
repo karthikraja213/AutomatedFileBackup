@@ -5,18 +5,17 @@ import boto3
 import threading
 import time
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import sys
 
 # AWS S3 configuration
-aws_access_key = ''
-aws_secret_key = ''
-bucket_name = ''
+aws_access_key = 'AKIAYRH5M2GYEUODA3SO'
+aws_secret_key = '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'
+bucket_name = 'backupbucket786'
 
-config_file = "backup_config.json"
+config_file = "C:/Users/kkart/OneDrive/Desktop/git-website/AutomatedFileBackup/backup_config.json"
+
 
 def save_config(directory, interval, email_notifications):
     config = {
@@ -28,10 +27,12 @@ def save_config(directory, interval, email_notifications):
         json.dump(config, f)
     print("Configuration saved.")
 
+
 def select_directory():
     directory = filedialog.askdirectory()
     folder_label.config(text=directory)
     return directory
+
 
 def validate_directory(directory):
     if not os.path.exists(directory):
@@ -39,11 +40,12 @@ def validate_directory(directory):
         return False
     return True
 
+
 def start_backup():
     directory = folder_label.cget("text")
     interval = interval_entry.get()
     email_notifications = email_var.get()  # Check if email notifications are enabled
-    
+
     if not directory:
         messagebox.showerror("Error", "Please select a folder.")
         return
@@ -54,59 +56,28 @@ def start_backup():
         return
 
     save_config(directory, interval, email_notifications)
-    
+
     # Start the backup thread
     backup_thread = threading.Thread(target=automate_backup, args=(directory, int(interval), email_notifications))
     backup_thread.daemon = True
     backup_thread.start()
 
     # Start the Watchdog observer
-    monitor_thread = threading.Thread(target=monitor_files, args=(directory,))
+    monitor_thread = threading.Thread(target=monitor_files, args=(directory, email_notifications))
     monitor_thread.daemon = True
     monitor_thread.start()
 
-def send_email_notification(file_count):
-    sender_email = "devrathod1307@gmail.com"
-    receiver_email = "devnitarathod@gmail.com"
-    password = "erfw ihav iozz nlhj"
-    smtp_server = "smtp.gmail.com"
-    port = 587
-
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = receiver_email
-    message["Subject"] = f"File Backup Notification - {file_count} files uploaded to S3"
-    body = f"{file_count} files have been uploaded to the S3 bucket '{bucket_name}'."
-    message.attach(MIMEText(body, "plain"))
-
-    try:
-        with smtplib.SMTP(smtp_server, port) as server:
-            server.starttls()
-            server.login(sender_email, password)
-            server.sendmail(sender_email, receiver_email, message.as_string())
-        print("Notification email sent.")
-    except Exception as e:
-        print(f"Error sending email: {e}")
 
 def upload_to_s3(file_path, email_notifications, file_counter):
     try:
         s3 = boto3.client('s3', aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_key)
         s3.upload_file(file_path, bucket_name, os.path.basename(file_path))
-        
-        response = s3.head_object(Bucket=bucket_name, Key=os.path.basename(file_path))
-        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            print(f"Successfully uploaded {file_path}")
-            file_counter[0] += 1
-        else:
-            print(f"Upload failed for {file_path}")
-        
-        # If more than 2 files are uploaded and email notifications are enabled, send an email
-        if file_counter[0] > 2 and email_notifications:
-            send_email_notification(file_counter[0])
-            file_counter[0] = 0  # Reset counter after sending email
 
+        print(f"Successfully uploaded {file_path}")
+        file_counter[0] += 1
     except Exception as e:
         print(f"Error uploading to S3: {e}")
+
 
 def automate_backup(directory, interval, email_notifications):
     file_counter = [0]  # Counter to track number of files uploaded
@@ -116,14 +87,13 @@ def automate_backup(directory, interval, email_notifications):
             full_path = os.path.join(directory, file_path)
             if os.path.isfile(full_path):
                 upload_to_s3(full_path, email_notifications, file_counter)
-        
+
         print(f"Backup completed. Next backup in {interval} hours.")
-        messagebox.showinfo("Backup Complete", f"Backup completed. Next backup in {interval} hours.")
         time.sleep(interval * 3600)  # Convert hours to seconds
 
+
 class FileChangeHandler(FileSystemEventHandler):
-    def __init__(self, directory, email_notifications, file_counter):
-        self.directory = directory
+    def __init__(self, email_notifications, file_counter):
         self.email_notifications = email_notifications
         self.file_counter = file_counter
 
@@ -133,11 +103,10 @@ class FileChangeHandler(FileSystemEventHandler):
         print(f"File {event.src_path} has been modified. Starting backup...")
         upload_to_s3(event.src_path, self.email_notifications, self.file_counter)
 
-def monitor_files(directory):
-    file_counter = [0]  # Initialize counter
-    email_notifications = email_var.get()  # Check if email notifications are enabled
 
-    event_handler = FileChangeHandler(directory, email_notifications, file_counter)
+def monitor_files(directory, email_notifications):
+    file_counter = [0]  # Initialize counter
+    event_handler = FileChangeHandler(email_notifications, file_counter)
     observer = Observer()
     observer.schedule(event_handler, directory, recursive=True)
     observer.start()
@@ -149,31 +118,63 @@ def monitor_files(directory):
         observer.stop()
     observer.join()
 
-app = tk.Tk()
-app.title("Automated File Backup System")
 
-# Set window size
-app.geometry("400x400")
+def run_in_background():
+    if not os.path.exists(config_file):
+        print("Configuration file not found. Please configure the app first using the GUI.")
+        sys.exit(1)
 
-# Folder selection
-folder_button = tk.Button(app, text="Select Folder", command=select_directory)
-folder_button.pack(pady=10)
-folder_label = tk.Label(app, text="No folder selected")
-folder_label.pack()
+    # Load the configuration
+    with open(config_file, "r") as f:
+        config = json.load(f)
 
-# Backup interval
-interval_label = tk.Label(app, text="Backup Interval (hours):")
-interval_label.pack(pady=10)
-interval_entry = tk.Entry(app)
-interval_entry.pack(pady=10)
+    directory = config["directory"]
+    interval = int(config["interval"])
+    email_notifications = config["email_notifications"]
 
-# Email notification checkbox
-email_var = tk.BooleanVar()
-email_checkbox = tk.Checkbutton(app, text="Enable Email Notifications", variable=email_var)
-email_checkbox.pack(pady=10)
+    # Validate the directory
+    if not os.path.exists(directory):
+        print("Invalid directory specified in configuration. Please configure the app using the GUI.")
+        sys.exit(1)
 
-# Start backup button
-start_button = tk.Button(app, text="Save Configuration", command=start_backup)
-start_button.pack(pady=20)
+    # Start the backup thread
+    backup_thread = threading.Thread(target=automate_backup, args=(directory, interval, email_notifications))
+    backup_thread.daemon = True
+    backup_thread.start()
 
-app.mainloop()
+    # Start the Watchdog observer
+    monitor_files(directory, email_notifications)
+
+
+# Check for --background argument
+if len(sys.argv) > 1 and sys.argv[1] == "--background":
+    run_in_background()
+else:
+    app = tk.Tk()
+    app.title("Automated File Backup System")
+
+    # Set window size
+    app.geometry("400x400")
+
+    # Folder selection
+    folder_button = tk.Button(app, text="Select Folder", command=select_directory)
+    folder_button.pack(pady=10)
+    folder_label = tk.Label(app, text="No folder selected")
+    folder_label.pack()
+
+    # Backup interval
+    interval_label = tk.Label(app, text="Backup Interval (hours):")
+    interval_label.pack(pady=10)
+    interval_entry = tk.Entry(app)
+    interval_entry.pack(pady=10)
+
+    # Email notification checkbox
+    email_var = tk.BooleanVar()
+    email_checkbox = tk.Checkbutton(app, text="Enable Email Notifications", variable=email_var)
+    email_checkbox.pack(pady=10)
+
+    # Start backup button
+    start_button = tk.Button(app, text="Save Configuration", command=start_backup)
+    start_button.pack(pady=20)
+
+    app.mainloop()
