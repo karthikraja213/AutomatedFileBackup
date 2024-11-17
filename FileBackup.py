@@ -10,9 +10,9 @@ from watchdog.events import FileSystemEventHandler
 import sys
 
 # AWS S3 configuration
-# aws_access_key = ''
-# aws_secret_key = ''
-# bucket_name = ''
+aws_access_key = ''
+aws_secret_key = ''
+bucket_name = ''
 
 config_file = "C:/Users/kkart/OneDrive/Desktop/git-website/AutomatedFileBackup/backup_config.json"
 
