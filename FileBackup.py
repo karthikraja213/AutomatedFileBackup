@@ -150,31 +150,32 @@ def run_in_background():
 if len(sys.argv) > 1 and sys.argv[1] == "--background":
     run_in_background()
 else:
-    app = tk.Tk()
-    app.title("Automated File Backup System")
+    if "pytest" not in sys.modules:
+        app = tk.Tk()
+        app.title("Automated File Backup System")
 
-    # Set window size
-    app.geometry("400x400")
+        # Set window size
+        app.geometry("400x400")
 
-    # Folder selection
-    folder_button = tk.Button(app, text="Select Folder", command=select_directory)
-    folder_button.pack(pady=10)
-    folder_label = tk.Label(app, text="No folder selected")
-    folder_label.pack()
+        # Folder selection
+        folder_button = tk.Button(app, text="Select Folder", command=select_directory)
+        folder_button.pack(pady=10)
+        folder_label = tk.Label(app, text="No folder selected")
+        folder_label.pack()
 
-    # Backup interval
-    interval_label = tk.Label(app, text="Backup Interval (hours):")
-    interval_label.pack(pady=10)
-    interval_entry = tk.Entry(app)
-    interval_entry.pack(pady=10)
+        # Backup interval
+        interval_label = tk.Label(app, text="Backup Interval (hours):")
+        interval_label.pack(pady=10)
+        interval_entry = tk.Entry(app)
+        interval_entry.pack(pady=10)
 
-    # Email notification checkbox
-    email_var = tk.BooleanVar()
-    email_checkbox = tk.Checkbutton(app, text="Enable Email Notifications", variable=email_var)
-    email_checkbox.pack(pady=10)
+        # Email notification checkbox
+        email_var = tk.BooleanVar()
+        email_checkbox = tk.Checkbutton(app, text="Enable Email Notifications", variable=email_var)
+        email_checkbox.pack(pady=10)
 
-    # Start backup button
-    start_button = tk.Button(app, text="Save Configuration", command=start_backup)
-    start_button.pack(pady=20)
+        # Start backup button
+        start_button = tk.Button(app, text="Save Configuration", command=start_backup)
+        start_button.pack(pady=20)
 
-    app.mainloop()
+        app.mainloop()
