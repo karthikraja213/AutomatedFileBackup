@@ -14,7 +14,7 @@ aws_access_key = ''
 aws_secret_key = ''
 bucket_name = ''
 
-config_file = "C:/Users/kkart/OneDrive/Desktop/git-website/AutomatedFileBackup/backup_config.json"
+config_file = os.path.join(os.getcwd(), "backup_config.json")
 
 
 def save_config(directory, interval, email_notifications):
