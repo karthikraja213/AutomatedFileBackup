@@ -5,3 +5,5 @@ cyberattacks. Using free/trial-tier services from major cloud providers, the pro
 while still offering functionality. With a carefully structured DevOps process—including
 automated builds, testing, and deployment—the system is robust and scalable, making it
 suitable for individuals and small businesses alike.
+
+#AutomatedFileBackup
